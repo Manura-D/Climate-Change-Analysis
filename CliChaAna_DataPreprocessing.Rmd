@@ -1,0 +1,239 @@
+---
+title: "CliChaAna_DataPreprocessing"
+author: "Manura Dissanyake (WQD170050)"
+        "Buddhika Sameera (WQD170051)"
+date: "16 December 2017"
+output: html_document
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Loading Libraries and setting options
+
+```{r required libraries}
+
+options(scipen=999)
+
+#install.packages("readxl")
+library(readxl)
+
+library(dplyr)
+
+#install.packages("tidyr")
+library("tidyr")
+
+
+
+```
+
+## Importing Data
+
+Precipitation and Temperature data were downloaded from 
+http://sdwebx.worldbank.org/climateportal/index.cfm?page=downscaled_data_download&menu=historical.
+
+
+Importing precipitation data and merging to single data frame
+```{r PR}
+
+PR1 <- read_excel("../pr_1991_2015_1.xls")
+head(PR1)
+PR2 <- read_excel("../pr_1991_2015_2.xls")
+PR3 <- read_excel("../pr_1991_2015_3.xls")
+PR4 <- read_excel("../pr_1991_2015_4.xls")
+PR5 <- read_excel("../pr_1991_2015_5.xls")
+PR6 <- read_excel("../pr_1991_2015_6.xls")
+PR7 <- read_excel("../pr_1991_2015_7.xls")
+PR8 <- read_excel("../pr_1991_2015_8.xls")
+
+
+PR <- rbind.data.frame(PR1, PR2)
+str(PR)
+PR <- rbind.data.frame(PR, PR4)
+PR <- rbind.data.frame(PR, PR5)
+PR <- rbind.data.frame(PR, PR6)
+PR <- rbind.data.frame(PR, PR7)
+PR <- rbind.data.frame(PR, PR8)
+
+str(PR)
+summary(PR)
+
+write.csv(PR,file = "../pr_1991_2015_all.csv")
+
+```
+
+Importing temperature data and merging to single data frame
+```{r TAS}
+
+TAS <- read_excel("../tas_1991_2015_1.xls")
+head(TAS)
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_2.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_3.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_4.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_5.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_6.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_7.xls"))
+TAS <- rbind.data.frame(TAS, read_excel("../tas_1991_2015_8.xls"))
+
+str(TAS)
+summary(TAS)
+
+write.csv(TAS,file = "../tas_1991_2015_all.csv")
+
+```
+
+Importing explanatory data downloaded from https://data.worldbank.org/topic/climate-change
+
+```{r TAS}
+Country <- read.csv("../Country.csv")
+summary(Country)
+
+clim.data <- read.csv("../Climate_Data.csv")
+summary(clim.data)
+
+
+```
+
+## Data Preprocessing
+
+
+Replacing ".." with NA
+```{r dotreplace}
+summary(clim.data)
+clim.data[clim.data==".."] <- NA
+summary(clim.data)
+
+```
+
+
+exploring the NA count
+
+```{r NA}
+clim.data$NA_COUNT <-apply(clim.data, 1, function(x) sum(is.na(x)))
+summary(clim.data)
+str(clim.data)
+
+clim.data <- tbl_df(clim.data)
+glimpse(clim.data)
+
+clim.data.summ <-  select(clim.data, Series.code, NA_COUNT) %>% 
+                        group_by(Series.code) %>%
+                          summarise(sum(NA_COUNT)) 
+summary(clim.data.summ)
+clim.data.summ <- rename(clim.data.summ, NA.COUNT.SUM=`sum(NA_COUNT)`)
+
+clim.data.summ %>% arrange(NA.COUNT.SUM)
+clim.data.summ %>% arrange(desc(NA.COUNT.SUM))
+clim.data.summ %>% arrange(NA.COUNT.SUM) %>%
+             filter(Series.code=="SP.POP.TOTL")
+
+```
+
+
+
+Filtering the identified xxplanatory variables
+
+```{r ExplaVariableFilter}
+str(clim.data)
+
+clim.data.fil1 <- clim.data %>% filter(Series.code %in% c("SP.POP.TOTL", "SP.POP.GROW", "SP.URB.TOTL",
+                                        "SP.URB.GROW", "NY.GDP.MKTP.CD", "BX.KLT.DINV.WD.GD.ZS",
+                                        "EN.ATM.CO2E.KT" , "EN.ATM.CO2E.PC", 
+                                        "EN.ATM.CO2E.PP.GD.KD", "EG.USE.PCAP.KG.OE",
+                                        "EG.USE.COMM.GD.PP.KD", "EN.URB.MCTY.TL.ZS",
+                                        "IE.PPI.TELE.CD", "IS.ROD.PAVE.ZS"
+                                        ))
+
+         
+summary(clim.data.fil1)
+
+str(clim.data)
+
+str(clim.data.fil1)
+
+```
+
+
+
+Creating tidy data frame from explanatory data
+
+
+```{r tidy}
+
+glimpse(clim.data.fil1)
+clim.data.fil2 <- clim.data.fil1[1:28] %>% gather(Year, meas , X1990:X2011)
+
+head(clim.data.fil2)
+clim.data.fil3 <- clim.data.fil2[c(-4,-5,-6)] %>% spread(Series.code, meas)
+
+glimpse(clim.data.fil3)
+
+clim.data.fil3$Year <- as.numeric(gsub("X", "", clim.data.fil3$Year  ))
+clim.data.fil3[4:17] <-apply(as.data.frame(clim.data.fil3)[4:17], c(1,2), as.numeric )
+glimpse(clim.data.fil3)
+
+```
+
+
+Creating Yearly aggregated data from monthly aggregated data.
+  * Explanatory data was originally aggreated yearly
+  * Response variables were originally aggregated monthly.
+  * Three variables each measuring min, max and mean was created while aggregaating monthly data to yearly data.
+
+```{r}
+
+
+PR.agg1 <- PR %>% group_by(Country,Year) %>% summarise(min(pr), max(pr), mean(pr))  
+PR.agg1$Year <- as.numeric(PR.agg1$Year)
+
+TAS.agg1 <- TAS %>% group_by(Country,Year) %>% summarise(min(tas), max(tas), mean(tas)) 
+TAS.agg1$Year <- as.numeric(TAS.agg1$Year)
+
+str(PR.agg1)
+str(TAS.agg1)
+
+
+clim.data.PR <- merge(x = clim.data.fil3, y = PR.agg1, by.x = c("Country.code","Year"), by.y =  c("Country","Year"), all.x = TRUE)
+
+clim.data.PR.TAS <- merge(x = clim.data.PR, y = TAS.agg1, by.x = c("Country.code","Year"), by.y =  c("Country","Year"), all.x = TRUE)
+
+str(clim.data.PR.TAS)
+summary(clim.data.PR.TAS)
+clim.data.PR.TAS <- clim.data.PR.TAS %>% rename( PR.MIN='min(pr)') %>%
+  rename( PR.MAX='max(pr)') %>% rename(PR.MEAN=`mean(pr)`) %>%
+  rename( TAS.MIN='min(tas)') %>%
+  rename( TAS.MAX='max(tas)') %>% rename(TAS.MEAN=`mean(tas)`)
+
+str(clim.data.PR.TAS)
+summary(clim.data.PR.TAS)
+  
+write.csv(clim.data.PR.TAS,"../clim_data_PR_TAS.csv")
+
+
+```
+
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
