@@ -1,23 +1,10 @@
 ---
 title: "CliChaAna_DataPreprocessing"
-author: "Manura Dissanyake (WQD170050)"
-        "Buddhika Sameera (WQD170051)"
+author: "Manura Dissanyake (WQD170050) & Buddhika Sameera (WQD170051)"
 date: "16 December 2017"
 output: html_document
 ---
 
-
-
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ## Loading Libraries and setting options
 
@@ -33,6 +20,10 @@ library(dplyr)
 #install.packages("tidyr")
 library("tidyr")
 
+library("ggplot2")
+
+#install.packages("rworldmap")
+library(rworldmap)
 
 
 ```
@@ -94,9 +85,12 @@ write.csv(TAS,file = "../tas_1991_2015_all.csv")
 
 Importing explanatory data downloaded from https://data.worldbank.org/topic/climate-change
 
-```{r TAS}
+```{r Country Series}
 Country <- read.csv("../Country.csv")
 summary(Country)
+
+clim.series <- read.csv("../Climate_Series.csv", header = TRUE)
+str(clim.series)
 
 clim.data <- read.csv("../Climate_Data.csv")
 summary(clim.data)
@@ -131,7 +125,6 @@ clim.data.summ <-  select(clim.data, Series.code, NA_COUNT) %>%
                           summarise(sum(NA_COUNT)) 
 summary(clim.data.summ)
 clim.data.summ <- rename(clim.data.summ, NA.COUNT.SUM=`sum(NA_COUNT)`)
-
 clim.data.summ %>% arrange(NA.COUNT.SUM)
 clim.data.summ %>% arrange(desc(NA.COUNT.SUM))
 clim.data.summ %>% arrange(NA.COUNT.SUM) %>%
@@ -222,18 +215,23 @@ write.csv(clim.data.PR.TAS,"../clim_data_PR_TAS.csv")
 
 ```
 
+Merging the country data with climate data to get country code and other variables in to the main data frame.
 
+```{r Merge clim.data.PR.TAS Country }
 
+clim.data.PR.TAS.COUNTRY <- merge(x = clim.data.PR.TAS, y = Country, by.x = c("Country.code","Country.name"), by.y =  c("Country.code","Country.name"), all.x = TRUE)
 
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Saving data files
+
+Required data structred were duped in to *.Rda files which will be load in to Shiny app.
+
+```{r}
+save(clim.data.PR.TAS, file="clim_data_PR_TAS.Rda")
+save(clim.series, file="clim_series.Rda")
+save(Country, file="country.Rda")
+save(clim.data.PR.TAS.COUNTRY, file="clim_data_PR_TAS_COUNTRY.Rda")
+```
+

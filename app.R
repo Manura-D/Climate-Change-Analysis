@@ -14,7 +14,7 @@ library("ggplot2")
 library(rworldmap)
 
 #install.packages("shinythemes")
-library(shinythemes)
+library("shinythemes")
 
 # More info:
 #   https://github.com/jcheng5/googleCharts
@@ -25,6 +25,9 @@ library(shinythemes)
 ## devtools::install_github("jcheng5/googleCharts")
 library(devtools)
 library(googleCharts)
+
+library(DT)
+library(mgcv)
 
 # Use global max/min for axes so the view window stays
 # constant as the user moves between years
@@ -58,10 +61,10 @@ ui <- fluidPage(title = "Climate Data Analysis",
                }')
   )),
                 
-  tabsetPanel(
+  tabsetPanel( 
     
     ## TAB 1
-    tabPanel(title = "Relationship and Trend Analysis",
+    tabPanel(title = "Relationship and Trend Analysis", 
       
       
       tags$h1("Climate Data Analysis"),
@@ -74,7 +77,7 @@ ui <- fluidPage(title = "Climate Data Analysis",
       fluidRow(
         #column(8,
                sidebarLayout(
-                 sidebarPanel( id="sidebar",
+                 sidebarPanel( id="sidebar", 
                    
                    selectInput(
                      'y0', 'Choose dependent variable', choices = c("Temperature","precipitation"),
@@ -107,20 +110,27 @@ ui <- fluidPage(title = "Climate Data Analysis",
         )
       ),
       
-      
       tags$h4(textOutput("head22")),
       
-      fluidRow(
-        shiny::column(4, offset = 0, plotOutput("Min_Relation") ),
-        shiny::column(4, offset = 0, plotOutput("Mean_Relation") ),
-        shiny::column(4, offset = 0, plotOutput("Max_Relation") )
+      fluidRow( style = "background-color: #a9dff4",
+            shiny::column(4, offset = 0, plotOutput("Min_Relation") ),  
+            shiny::column(4, offset = 0, plotOutput("Mean_Relation") ),
+            shiny::column(4, offset = 0, plotOutput("Max_Relation") )
+      ),
+      
+      tags$h4("Regression Analysis"),
+      
+      fluidRow( style = "background-color: #a9dff4",
+            shiny::column(6, offset = 0, verbatimTextOutput("TAS_MAX_mod")  ),
+            shiny::column(6, offset = 0, verbatimTextOutput("PR_MAX_mod") )
       )
-    ) 
+        
+    )
     
     ),
     
     ## TAB 2
-    tabPanel(title = "Google Analysis",
+    tabPanel(title = "Response Variables",
            
            # This line loads the Google Charts JS library
            googleChartsInit(),
@@ -180,8 +190,8 @@ ui <- fluidPage(title = "Climate Data Analysis",
                                )
                              )
            ),
-           fluidRow(
-             shiny::column(4, offset = 4,
+           fluidRow( style = "background-color: #a9dff4",
+             shiny::column(4, offset = 4, 
                            sliderInput("year", "Year",
                                        min = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), max = max(clim.data.PR.TAS$Year),
                                        value = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), animate = TRUE)
@@ -200,7 +210,7 @@ ui <- fluidPage(title = "Climate Data Analysis",
              
       tags$h4(textOutput("head31")),
              
-      fluidRow(
+      fluidRow( style = "background-color: #a9dff4",
           plotOutput("mapdata")
       ),
       
@@ -222,6 +232,20 @@ ui <- fluidPage(title = "Climate Data Analysis",
       
       
       
+    ),
+    
+    
+    
+    ## TAB 4
+    tabPanel(title = "Reference Data",
+             
+             tags$h4("Explanatory Variable Reference") ,
+             
+             fluidRow( style = "background-color: #a9dff4",
+                       DT::dataTableOutput("clim_ser_ref")
+             )
+             
+
     )
   
   
@@ -387,12 +411,15 @@ output$Min_Relation <- renderPlot({
     scale_y_continuous( paste("Minimum ", input$y0) )
 })
 
+
 output$Mean_Relation <- renderPlot({
   ggplot(mapping = aes( clim.data.viz$X, clim.data.viz$Y2) ) +
     geom_point() + geom_smooth(method ="auto") +
     scale_x_log10(paste(input$x0," (log10 scale)")) +
     scale_y_continuous( paste("Mean ", input$y0) )
 })
+
+
 
 output$Max_Relation <- renderPlot({
   ggplot(mapping = aes( clim.data.viz$X, clim.data.viz$Y3) ) +
@@ -402,6 +429,23 @@ output$Max_Relation <- renderPlot({
 })
 
 
+
+
+clim.mod1 <- glm(TAS.MAX ~ .-PR.MIN-PR.MAX-PR.MEAN-TAS.MIN-TAS.MAX-TAS.MEAN-Country.code-Country.name 
+                 , data = clim.data.PR.TAS)
+
+output$TAS_MAX_mod <- renderPrint({ 
+  summary(clim.mod1)
+})
+
+
+
+clim.mod2 <- glm(PR.MAX ~ .-PR.MIN-PR.MAX-PR.MEAN-TAS.MIN-TAS.MAX-TAS.MEAN-Country.code-Country.name 
+                 , data = clim.data.PR.TAS)
+
+output$PR_MAX_mod <- renderPrint({ 
+  summary(clim.mod2)
+})
 
 
 output$Year_Trend <- renderPlot({
@@ -495,15 +539,24 @@ output$mapdata <- renderPlot({
                                       nameJoinColumn = "Country.code")
   par(mai=c(0,0,1,0),xaxs="i",yaxs="i")
   mapCountryData(mapped_data2, nameColumnToPlot = temp_exp_var(), colourPalette = "topo") 
+
+})  
+  
+#############
+#tab4
+############  
   
   
+#clim_ser_ref <- renderPrint( { kable(clim.series, caption = "Explanatory Variable Reference Data") })
   
-})
+output$clim_ser_ref = DT::renderDataTable({clim.series})
 
 
-
-  
 }
+
+
+
+
 
 
 # clim.data.x <- reactive({
