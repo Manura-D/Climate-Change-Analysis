@@ -16,7 +16,7 @@ library(rworldmap)
 #install.packages("shinythemes")
 library("shinythemes")
 
-# More info:
+# More info on google charts:
 #   https://github.com/jcheng5/googleCharts
 # Install:
 #   devtools::install_github("jcheng5/googleCharts")

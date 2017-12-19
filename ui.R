@@ -14,9 +14,9 @@ library("ggplot2")
 library(rworldmap)
 
 #install.packages("shinythemes")
-library(shinythemes)
+library("shinythemes")
 
-# More info:
+# More info on google charts:
 #   https://github.com/jcheng5/googleCharts
 # Install:
 #   devtools::install_github("jcheng5/googleCharts")
@@ -25,6 +25,9 @@ library(shinythemes)
 ## devtools::install_github("jcheng5/googleCharts")
 library(devtools)
 library(googleCharts)
+
+library(DT)
+library(mgcv)
 
 # Use global max/min for axes so the view window stays
 # constant as the user moves between years
@@ -42,26 +45,26 @@ ylim <- list(
 
 shinyUI(fluidPage(title = "Climate Data Analysis",
                 
-                theme = shinythemes::shinytheme("cosmo"),           
-                
-                tags$head(tags$style(
-                  HTML('
-                       #sidebar {
-                       background-color: #a9dff4;
-                       }
-                       #main {
-                       background-color: #1dace3;
-                       }
-                       
-                       body, label, input, button, select { 
-                       font-family: "Arial";
-                       }')
+                  theme = shinythemes::shinytheme("cosmo"),           
+                  
+                  tags$head(tags$style(
+                    HTML('
+                         #sidebar {
+                         background-color: #a9dff4;
+                         }
+                         #main {
+                         background-color: #1dace3;
+                         }
+                         
+                         body, label, input, button, select { 
+                         font-family: "Arial";
+                         }')
   )),
   
-  tabsetPanel(
+  tabsetPanel( 
     
     ## TAB 1
-    tabPanel(title = "Relationship and Trend Analysis",
+    tabPanel(title = "Relationship and Trend Analysis", 
              
              
              tags$h1("Climate Data Analysis"),
@@ -74,7 +77,7 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
                fluidRow(
                  #column(8,
                  sidebarLayout(
-                   sidebarPanel( id="sidebar",
+                   sidebarPanel( id="sidebar", 
                                  
                                  selectInput(
                                    'y0', 'Choose dependent variable', choices = c("Temperature","precipitation"),
@@ -107,20 +110,27 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
                  )
                ),
                
-               
                tags$h4(textOutput("head22")),
                
-               fluidRow(
-                 shiny::column(4, offset = 0, plotOutput("Min_Relation") ),
-                 shiny::column(4, offset = 0, plotOutput("Mean_Relation") ),
-                 shiny::column(4, offset = 0, plotOutput("Max_Relation") )
+               fluidRow( style = "background-color: #a9dff4",
+                         shiny::column(4, offset = 0, plotOutput("Min_Relation") ),  
+                         shiny::column(4, offset = 0, plotOutput("Mean_Relation") ),
+                         shiny::column(4, offset = 0, plotOutput("Max_Relation") )
+               ),
+               
+               tags$h4("Regression Analysis"),
+               
+               fluidRow( style = "background-color: #a9dff4",
+                         shiny::column(6, offset = 0, verbatimTextOutput("TAS_MAX_mod")  ),
+                         shiny::column(6, offset = 0, verbatimTextOutput("PR_MAX_mod") )
                )
-             ) 
+               
+             )
              
     ),
     
     ## TAB 2
-    tabPanel(title = "Google Analysis",
+    tabPanel(title = "Response Variables",
              
              # This line loads the Google Charts JS library
              googleChartsInit(),
@@ -180,12 +190,12 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
                                  )
                                )
              ),
-             fluidRow(
-               shiny::column(4, offset = 4,
-                             sliderInput("year", "Year",
-                                         min = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), max = max(clim.data.PR.TAS$Year),
-                                         value = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), animate = TRUE)
-               )
+             fluidRow( style = "background-color: #a9dff4",
+                       shiny::column(4, offset = 4, 
+                                     sliderInput("year", "Year",
+                                                 min = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), max = max(clim.data.PR.TAS$Year),
+                                                 value = min(clim.data.PR.TAS %>% filter(Year != 1990) %>% select(Year)), animate = TRUE)
+                       )
              )
              
              
@@ -200,8 +210,8 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
              
              tags$h4(textOutput("head31")),
              
-             fluidRow(
-               plotOutput("mapdata")
+             fluidRow( style = "background-color: #a9dff4",
+                       plotOutput("mapdata")
              ),
              
              hr(),
@@ -222,6 +232,20 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
              
              
              
+    ),
+    
+    
+    
+    ## TAB 4
+    tabPanel(title = "Reference Data",
+             
+             tags$h4("Explanatory Variable Reference") ,
+             
+             fluidRow( style = "background-color: #a9dff4",
+                       DT::dataTableOutput("clim_ser_ref")
+             )
+             
+             
     )
     
     
@@ -236,6 +260,5 @@ shinyUI(fluidPage(title = "Climate Data Analysis",
     
   )
   
-                  )
 
 )

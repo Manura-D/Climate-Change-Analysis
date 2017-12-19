@@ -14,10 +14,9 @@ library("ggplot2")
 library(rworldmap)
 
 #install.packages("shinythemes")
-library(shinythemes)
+library("shinythemes")
 
-
-# More info:
+# More info on google charts:
 #   https://github.com/jcheng5/googleCharts
 # Install:
 #   devtools::install_github("jcheng5/googleCharts")
@@ -27,12 +26,14 @@ library(shinythemes)
 library(devtools)
 library(googleCharts)
 
+library(DT)
+library(mgcv)
+
 
 
 
 
 shinyServer(function(input , output, session) {
-  
   
   clim.data.viz <- reactiveValues( 
     X = clim.data.PR.TAS['SP.POP.TOTL'],
@@ -173,12 +174,15 @@ shinyServer(function(input , output, session) {
       scale_y_continuous( paste("Minimum ", input$y0) )
   })
   
+  
   output$Mean_Relation <- renderPlot({
     ggplot(mapping = aes( clim.data.viz$X, clim.data.viz$Y2) ) +
       geom_point() + geom_smooth(method ="auto") +
       scale_x_log10(paste(input$x0," (log10 scale)")) +
       scale_y_continuous( paste("Mean ", input$y0) )
   })
+  
+  
   
   output$Max_Relation <- renderPlot({
     ggplot(mapping = aes( clim.data.viz$X, clim.data.viz$Y3) ) +
@@ -188,6 +192,23 @@ shinyServer(function(input , output, session) {
   })
   
   
+  
+  
+  clim.mod1 <- glm(TAS.MAX ~ .-PR.MIN-PR.MAX-PR.MEAN-TAS.MIN-TAS.MAX-TAS.MEAN-Country.code-Country.name 
+                   , data = clim.data.PR.TAS)
+  
+  output$TAS_MAX_mod <- renderPrint({ 
+    summary(clim.mod1)
+  })
+  
+  
+  
+  clim.mod2 <- glm(PR.MAX ~ .-PR.MIN-PR.MAX-PR.MEAN-TAS.MIN-TAS.MAX-TAS.MEAN-Country.code-Country.name 
+                   , data = clim.data.PR.TAS)
+  
+  output$PR_MAX_mod <- renderPrint({ 
+    summary(clim.mod2)
+  })
   
   
   output$Year_Trend <- renderPlot({
@@ -282,11 +303,16 @@ shinyServer(function(input , output, session) {
     par(mai=c(0,0,1,0),xaxs="i",yaxs="i")
     mapCountryData(mapped_data2, nameColumnToPlot = temp_exp_var(), colourPalette = "topo") 
     
-    
-    
-  })
+  })  
+  
+  #############
+  #tab4
+  ############  
   
   
+  #clim_ser_ref <- renderPrint( { kable(clim.series, caption = "Explanatory Variable Reference Data") })
+  
+  output$clim_ser_ref = DT::renderDataTable({clim.series})
   
   
 }
